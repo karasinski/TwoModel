@@ -55,6 +55,25 @@ public class Controller : MonoBehaviour
         // Note that the negative sign is purely conventional
         x = Trackers[0].Output();
         y = Trackers[1].Output();
+
+        if (x > 500)
+        {
+            x = 500;
+        }
+        else if (x < -500)
+        {
+            x = -500;
+        }
+
+        if (y > 500)
+        {
+            y = 500;
+        }
+        else if (y < -500)
+        {
+            y = -500;
+        }
+
         Position = new Vector3(x, y, 0);
         Cursor.transform.localPosition = Position;
 
