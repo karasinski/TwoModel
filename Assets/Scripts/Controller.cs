@@ -6,18 +6,16 @@ using UnityEngine;
 
 public class Controller : MonoBehaviour
 {
+    public GameObject Cursor, Target, Text;
+    public int TotalTrials, CurrentTrial, LengthOfTrial, SystemOrder;
+    public double DisturbanceGain, InputGain;
+
     private StreamWriter Writer;
-
-    public GameObject Cursor, Target;
-
     private String Filename;
     private bool RunningTrial;
     private float x, y, StartTime;
     private Vector3 Position;
-
-    public int TotalTrials, CurrentTrial, LengthOfTrial, SystemOrder;
-    public double DisturbanceGain, InputGain;
-    private Tracking Tracker1;
+    private Tracking[] Trackers = new Tracking[2];
 
     public class Tracking
     {
@@ -125,22 +123,31 @@ public class Controller : MonoBehaviour
             u = u0;
         }
 
+
+        private string Stringify(Matrix<double> input) {
+            var str = "";
+            foreach (double element in input.ToArray())
+            {
+                str += element.ToString() + ", ";
+            }
+            return str;
+        }
+
         public string Logger(float CurrentTime)
         {
-            return (String.Format("({0}, {1}, {2}, {3})", u, y, Disturbance, x));
+            var ustr = Stringify(u);
+            var ystr = Stringify(y);
+            var xstr = Stringify(x);
+
+            return String.Format("{0}{1}{2}, {3}", ustr, ystr, Disturbance, xstr);
         }
     }
 
     void Start()
     {
         // Initialize a 1D tracker
-        Tracker1 = new Tracking(SystemOrder, DisturbanceGain, InputGain);
-        var test = Tracker1.x.ToString();
-        print(test);
-        test = Tracker1.x.ToTypeString();
-        print(test);
-        test = Tracker1.Logger(5);
-        print(test);
+        Trackers[0] = new Tracking(SystemOrder, DisturbanceGain, InputGain);
+        Trackers[1] = new Tracking(SystemOrder, DisturbanceGain, InputGain);
     }
 
     void Update()
@@ -149,9 +156,9 @@ public class Controller : MonoBehaviour
         {
             RunTrial();
         }
-        else if (Input.GetKeyDown("space"))
+        else if (Input.GetKeyDown("space") && CurrentTrial <= TotalTrials)
         {
-            ClickStartTrial();
+            StartTrial();
         }
     }
 
@@ -160,7 +167,9 @@ public class Controller : MonoBehaviour
         if (RunningTrial)
         {
             float CurrentTime = Time.time - StartTime;
-            var r = Tracker1.Logger(CurrentTime);
+            var r0 = Trackers[0].Logger(CurrentTime);
+            var r1 = Trackers[1].Logger(CurrentTime);
+            var r = r0 + r1;
             Log(r, Writer);
         }
     }
@@ -168,8 +177,8 @@ public class Controller : MonoBehaviour
     void RunTrial()
     {
         // Note that the negative sign is purely conventional
-        x = 0;
-        y = Tracker1.Output();
+        x = Trackers[0].Output();
+        y = Trackers[1].Output();
         Position = new Vector3(x, y, 0);
         Cursor.transform.localPosition = Position;
 
@@ -177,7 +186,8 @@ public class Controller : MonoBehaviour
         float CurrentTime = Time.time - StartTime;
 
         //tracker update
-        Tracker1.UpdateDynamics(CurrentTime);
+        Trackers[0].UpdateDynamics(CurrentTime);
+        Trackers[1].UpdateDynamics(CurrentTime + 60);
 
         if (CurrentTime > LengthOfTrial)
         {
@@ -185,7 +195,7 @@ public class Controller : MonoBehaviour
         }
     }
 
-    void ClickStartTrial()
+    void StartTrial()
     {
         // Output data to file
         Filename = String.Format("logs/trial_{0}_log_{1}.csv", CurrentTrial, DateTime.UtcNow.ToLocalTime().ToString("yyy_MM_dd_hh_mm_ss"));
@@ -194,16 +204,19 @@ public class Controller : MonoBehaviour
         // Set start time
         RunningTrial = true;
         StartTime = Time.time;
+        Cursor.SetActive(true);
     }
 
     void EndTrial()
     {
         Writer.Close();
+        Cursor.SetActive(false);
 
         CurrentTrial += 1;
         if (CurrentTrial > TotalTrials)
         {
             // Exit experiment
+            Text.SetActive(true);
         }
         else
         {
@@ -212,7 +225,8 @@ public class Controller : MonoBehaviour
 
         RunningTrial = false;
 
-        Tracker1.Reset();
+        Trackers[0].Reset();
+        Trackers[1].Reset();
     }
 
     void Log(string logMessage, TextWriter w)
