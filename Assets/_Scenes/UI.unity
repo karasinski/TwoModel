@@ -1061,10 +1061,11 @@ MonoBehaviour:
   Cursor: {fileID: 1302614688}
   Target: {fileID: 1537665513}
   Text: {fileID: 2055406874}
-  TotalTrials: 3
+  TotalTrials: 1
   CurrentTrial: 1
-  LengthOfTrial: 3
-  SystemOrder: 0
+  LengthOfTrial: 30
+  SystemOrder: 1
+  K: 5
   DisturbanceGain: 25
   InputGain: 25
 --- !u!1 &2055406874

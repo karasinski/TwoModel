@@ -62,3 +62,4 @@ sysinfo.txt
 *.apk
 *.unitypackage
 
+logs/*
