@@ -1,4 +1,4 @@
-#TwoModel
+# TwoModel
 
 Sure, let's create a new experiment. What are we doing here? We have two models we want to investigate. Namely, these are: a Human Pilot model and Fitt's Law. How do people perform under different dynamics? How is their learning different?
 
