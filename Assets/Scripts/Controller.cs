@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
@@ -9,15 +10,26 @@ public class Controller : MonoBehaviour
     public double K, DisturbanceGain, InputGain;
 
     private StreamWriter Writer;
-    private String Filename;
+    private String Filename, Subject;
     private bool RunningTrial;
-    private float x, y, StartTime;
+    private float x, y, StartTime, CurrentTime;
     private Vector3 Position;
     private Tracking[] Trackers = new Tracking[2];
+    private List<Dictionary<string, object>> TrialData;
 
     void Start()
     {
-        // Initialize a 1D tracker
+        try {
+            var path = Application.dataPath + "/../../trials.csv";
+            TrialData = CSVReader.Read(path);
+        } catch {
+            var path = Application.dataPath + "/../trials.csv";
+            TrialData = CSVReader.Read(path);
+        }
+
+        Subject = TrialData[0]["Subject"].ToString();
+
+        // Initialize the trackers
         Trackers[0] = new Tracking("Horizontal", K, SystemOrder, DisturbanceGain, InputGain);
         Trackers[1] = new Tracking("Vertical", K, SystemOrder, DisturbanceGain, InputGain);
     }
@@ -41,7 +53,7 @@ public class Controller : MonoBehaviour
     void StartTrial()
     {
         // Output data to file
-        Filename = String.Format("logs/trial_{0}_log_{1}.csv", CurrentTrial, DateTime.UtcNow.ToLocalTime().ToString("yyy_MM_dd_hh_mm_ss"));
+        Filename = String.Format("logs/subject_{0}_trial_{1}_log_{2}.csv", Subject, CurrentTrial, DateTime.UtcNow.ToLocalTime().ToString("yyy_MM_dd_hh_mm_ss"));
         Writer = File.AppendText(Filename);
 
         // Set start time
@@ -52,10 +64,11 @@ public class Controller : MonoBehaviour
 
     void RunTrial()
     {
-        // Note that the negative sign is purely conventional
+        // Where should we put the cursor?
         x = Trackers[0].Output();
         y = Trackers[1].Output();
 
+        // Keep the cursor within the bounds of the screen
         if (x > 500)
         {
             x = 500;
@@ -74,16 +87,18 @@ public class Controller : MonoBehaviour
             y = -500;
         }
 
+        // Place the cursor
         Position = new Vector3(x, y, 0);
         Cursor.transform.localPosition = Position;
 
-        // Add in the disturbance
-        float CurrentTime = Time.time - StartTime;
+        // Update the dynamics
+        CurrentTime = Time.time - StartTime;
 
         // Tracker update, yaxis is arbitrarily 60 seconds ahead
         Trackers[0].UpdateDynamics(CurrentTime);
         Trackers[1].UpdateDynamics(CurrentTime + 60);
 
+        // If we're done here--end
         if (CurrentTime > LengthOfTrial)
         {
             EndTrial();
@@ -110,7 +125,6 @@ public class Controller : MonoBehaviour
 
     void Log(string logMessage, TextWriter w)
     {
-        var time = Time.time - StartTime;
-        w.WriteLine("{0}, {1}", time, logMessage);
+        w.WriteLine("{0}, {1}", CurrentTime, logMessage);
     }
 }

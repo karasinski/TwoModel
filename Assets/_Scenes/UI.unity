@@ -1064,7 +1064,7 @@ MonoBehaviour:
   TotalTrials: 1
   CurrentTrial: 1
   LengthOfTrial: 30
-  SystemOrder: 1
+  SystemOrder: 0
   K: 5
   DisturbanceGain: 25
   InputGain: 25
