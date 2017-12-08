@@ -5,33 +5,39 @@ using UnityEngine;
 
 public class Controller : MonoBehaviour
 {
-    public GameObject Cursor, Target, Text;
-    public int TotalTrials, CurrentTrial, LengthOfTrial, SystemOrder;
+    public GameObject Cursor, Target, TrackingLines, Text;
+    public int LengthOfTrial;
     public double K, DisturbanceGain, InputGain;
 
     private StreamWriter Writer;
-    private String Filename, Subject;
-    private bool RunningTrial;
+    private String Filename, Subject, Type;
+    private bool InitializedTrial, RunningTrial, InsideTarget;
     private float x, y, StartTime, CurrentTime;
-    private Vector3 Position;
     private Tracking[] Trackers = new Tracking[2];
     private List<Dictionary<string, object>> TrialData;
+    private int TotalTrials, CurrentTrial, SystemOrder;
+    private double CircleRadius = 27.5;
+    private double TargetOffset;
 
     void Start()
     {
-        try {
+        // Read in the trial list for this subject
+        try
+        {
             var path = Application.dataPath + "/../../trials.csv";
             TrialData = CSVReader.Read(path);
-        } catch {
+        }
+        catch
+        {
             var path = Application.dataPath + "/../trials.csv";
             TrialData = CSVReader.Read(path);
         }
 
+        // Assumes that the Subject and SystemOrder do not change throughout the trials
+        CurrentTrial = 0;
         Subject = TrialData[0]["Subject"].ToString();
-
-        // Initialize the trackers
-        Trackers[0] = new Tracking("Horizontal", K, SystemOrder, DisturbanceGain, InputGain);
-        Trackers[1] = new Tracking("Vertical", K, SystemOrder, DisturbanceGain, InputGain);
+        TotalTrials = TrialData.Count;
+        SystemOrder = (int)TrialData[0]["SystemOrder"];
     }
 
     private void FixedUpdate()
@@ -44,26 +50,94 @@ public class Controller : MonoBehaviour
             Log(r, Writer);
             RunTrial();
         }
-        else if (Input.GetKeyDown("space") && CurrentTrial <= TotalTrials)
+        else if (!InitializedTrial && CurrentTrial < TotalTrials)
+        {
+            InitializeTrial();
+        }
+        else if (InitializedTrial && Input.GetKeyDown(KeyCode.Space) && CurrentTrial < TotalTrials)
         {
             StartTrial();
         }
     }
 
+    void InitializeTrial()
+    {
+        // Initialize the trackers
+        Type = TrialData[CurrentTrial]["Type"].ToString();
+
+        if (Type == "Tracking")
+        {
+            InitTracking();
+        }
+        else if (Type == "Fitts")
+        {
+            InitFitts();
+        }
+        else
+        {
+            print("You messed this one up, bucko.");
+        }
+        InitializedTrial = true;
+    }
+
+    void InitTracking()
+    {
+        Trackers[0] = new Tracking("Horizontal", K, SystemOrder, DisturbanceGain, InputGain);
+        Trackers[1] = new Tracking("Vertical", K, SystemOrder, DisturbanceGain, InputGain);
+        Target.transform.localPosition = new Vector3(0, 0, 0);
+
+        Cursor.SetActive(false);
+        Target.SetActive(true);
+        TrackingLines.SetActive(true);
+    }
+
+    void InitFitts()
+    {
+        Trackers[0] = new Tracking("Horizontal", K, SystemOrder, 0, InputGain);
+        Trackers[1] = new Tracking("Vertical", K, SystemOrder, 0, InputGain);
+        Target.transform.localPosition = RandomPointOnUnitCircle(250);
+
+        Cursor.SetActive(false);
+        Target.SetActive(false);
+        TrackingLines.SetActive(false);
+    }
+
     void StartTrial()
     {
         // Output data to file
-        Filename = String.Format("logs/subject_{0}_trial_{1}_log_{2}.csv", Subject, CurrentTrial, DateTime.UtcNow.ToLocalTime().ToString("yyy_MM_dd_hh_mm_ss"));
+        Filename = String.Format("logs/subject_{0}_trial_{1}_log_{2}.csv",
+                                 Subject, CurrentTrial + 1, DateTime.UtcNow.ToLocalTime().ToString("yyy_MM_dd_hh_mm_ss"));
         Writer = File.AppendText(Filename);
 
         // Set start time
         RunningTrial = true;
         StartTime = Time.time;
+
         Cursor.SetActive(true);
+        Target.SetActive(true);
     }
 
     void RunTrial()
     {
+        if (Type == "Fitts")
+        {
+            // Figure out if we're inside the target
+            TargetOffset = (Target.transform.localPosition - Cursor.transform.localPosition).magnitude;
+            InsideTarget = TargetOffset < CircleRadius;
+
+            if (InsideTarget && Input.GetKeyDown(KeyCode.Return))
+            {
+                EndTrial();
+            }
+        }
+
+        // Update the dynamics
+        CurrentTime = Time.time - StartTime;
+
+        // Tracker update, yaxis is arbitrarily 60 seconds ahead
+        Trackers[0].UpdateDynamics(CurrentTime);
+        Trackers[1].UpdateDynamics(CurrentTime + 60);
+
         // Where should we put the cursor?
         x = Trackers[0].Output();
         y = Trackers[1].Output();
@@ -88,15 +162,7 @@ public class Controller : MonoBehaviour
         }
 
         // Place the cursor
-        Position = new Vector3(x, y, 0);
-        Cursor.transform.localPosition = Position;
-
-        // Update the dynamics
-        CurrentTime = Time.time - StartTime;
-
-        // Tracker update, yaxis is arbitrarily 60 seconds ahead
-        Trackers[0].UpdateDynamics(CurrentTime);
-        Trackers[1].UpdateDynamics(CurrentTime + 60);
+        Cursor.transform.localPosition = new Vector3(x, y, 0);
 
         // If we're done here--end
         if (CurrentTime > LengthOfTrial)
@@ -108,19 +174,28 @@ public class Controller : MonoBehaviour
     void EndTrial()
     {
         Writer.Close();
-        Cursor.SetActive(false);
 
         CurrentTrial += 1;
-        if (CurrentTrial > TotalTrials)
+        if (CurrentTrial >= TotalTrials)
         {
             // Exit experiment
             Text.SetActive(true);
+            TrackingLines.SetActive(false);
+            Cursor.SetActive(false);
+            Target.SetActive(false);
         }
 
         RunningTrial = false;
+        InitializedTrial = false;
+    }
 
-        Trackers[0].Reset();
-        Trackers[1].Reset();
+    static Vector3 RandomPointOnUnitCircle(float radius)
+    {
+        float angle = UnityEngine.Random.Range(0f, Mathf.PI * 2);
+        float x = Mathf.Sin(angle) * radius;
+        float y = Mathf.Cos(angle) * radius;
+
+        return new Vector3(x, y, 0);
     }
 
     void Log(string logMessage, TextWriter w)
