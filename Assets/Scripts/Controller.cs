@@ -21,6 +21,7 @@ public class Controller : MonoBehaviour
 
     void Start()
     {
+        Screen.SetResolution(1000, 1000, false);
         // Read in the trial list for this subject
         try
         {
@@ -54,7 +55,7 @@ public class Controller : MonoBehaviour
         {
             InitializeTrial();
         }
-        else if (InitializedTrial && Input.GetKeyDown(KeyCode.Space) && CurrentTrial < TotalTrials)
+        else if (InitializedTrial && (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.JoystickButton1) || Input.GetKeyDown(KeyCode.JoystickButton16)) && CurrentTrial < TotalTrials)
         {
             StartTrial();
         }
@@ -77,6 +78,8 @@ public class Controller : MonoBehaviour
         {
             print("You messed this one up, bucko.");
         }
+
+        Cursor.transform.localPosition = new Vector3(0, 0, 0);
         InitializedTrial = true;
     }
 
@@ -125,7 +128,7 @@ public class Controller : MonoBehaviour
             TargetOffset = (Target.transform.localPosition - Cursor.transform.localPosition).magnitude;
             InsideTarget = TargetOffset < CircleRadius;
 
-            if (InsideTarget && Input.GetKeyDown(KeyCode.Return))
+            if (InsideTarget && (Input.GetKeyDown(KeyCode.Return) || Input.GetAxis("Axis 6") > 0.2))
             {
                 EndTrial();
             }

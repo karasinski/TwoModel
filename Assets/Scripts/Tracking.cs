@@ -35,15 +35,18 @@ public class Tracking
                 A = Matrix<double>.Build.DenseOfArray(new double[,] { { 0 } });
                 B = Matrix<double>.Build.DenseOfArray(new double[,] { { 1 } });
                 C = Matrix<double>.Build.DenseOfArray(new double[,] { { K } });
-                D = Matrix<double>.Build.DenseOfArray(new double[,] { { 1 } });
+                D = Matrix<double>.Build.DenseOfArray(new double[,] { { 0 } });
                 x = Matrix<double>.Build.DenseOfArray(new double[,] { { 0 } });
                 break;
             case 2:
-                A = Matrix<double>.Build.DenseOfArray(new double[,] { { 0, 0 }, { 1, 0 } });
-                B = Matrix<double>.Build.DenseOfArray(new double[,] { { 1 }, { 0 } });
+                A = Matrix<double>.Build.DenseOfArray(new double[,] { { 0, 0 },
+                                                                      { 1, 0 } });
+                B = Matrix<double>.Build.DenseOfArray(new double[,] { { 1 },
+                                                                      { 0 } });
                 C = Matrix<double>.Build.DenseOfArray(new double[,] { { 0, K } });
                 D = Matrix<double>.Build.DenseOfArray(new double[,] { { 0 } });
-                x = Matrix<double>.Build.DenseOfArray(new double[,] { { 0 }, { 0 } });
+                x = Matrix<double>.Build.DenseOfArray(new double[,] { { 0 },
+                                                                      { 0 } });
                 break;
         };
 

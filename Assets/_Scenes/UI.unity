@@ -1008,10 +1008,10 @@ MonoBehaviour:
   Target: {fileID: 1537665513}
   TrackingLines: {fileID: 1317867984}
   Text: {fileID: 2055406874}
-  LengthOfTrial: 5
+  LengthOfTrial: 30
   K: 5
   DisturbanceGain: 25
-  InputGain: 25
+  InputGain: 50
 --- !u!1 &2055406874
 GameObject:
   m_ObjectHideFlags: 0
