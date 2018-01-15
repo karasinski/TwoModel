@@ -6,7 +6,7 @@ using UnityEngine;
 public class Controller : MonoBehaviour
 {
     public GameObject Cursor, Target, TrackingLines, Text;
-    public int LengthOfTrial;
+    public int LengthOfTrial, SystemOrder;
     public double K, DisturbanceGain, InputGain;
 
     private StreamWriter Writer;
@@ -15,8 +15,9 @@ public class Controller : MonoBehaviour
     private float x, y, StartTime, CurrentTime;
     private Tracking[] Trackers = new Tracking[2];
     private List<Dictionary<string, object>> TrialData;
-    private int TotalTrials, CurrentTrial, SystemOrder;
+    private int TotalTrials, CurrentTrial, Trial;
     private double CircleRadius = 27.5;
+    private float Radius, Angle;
     private double TargetOffset;
 
     void Start()
@@ -38,7 +39,6 @@ public class Controller : MonoBehaviour
         CurrentTrial = 0;
         Subject = TrialData[0]["Subject"].ToString();
         TotalTrials = TrialData.Count;
-        SystemOrder = (int)TrialData[0]["SystemOrder"];
     }
 
     private void FixedUpdate()
@@ -47,7 +47,7 @@ public class Controller : MonoBehaviour
         {
             var r0 = Trackers[0].Logger();
             var r1 = Trackers[1].Logger();
-            var r = r0 + r1;
+            var r = r0 + r1 + InsideTarget.ToString();
             Log(r, Writer);
             RunTrial();
         }
@@ -55,7 +55,7 @@ public class Controller : MonoBehaviour
         {
             InitializeTrial();
         }
-        else if (InitializedTrial && (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.JoystickButton1) || Input.GetKeyDown(KeyCode.JoystickButton16)) && CurrentTrial < TotalTrials)
+        else if (InitializedTrial && (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.JoystickButton2) || Input.GetKeyDown(KeyCode.JoystickButton16)) && CurrentTrial < TotalTrials)
         {
             StartTrial();
         }
@@ -98,7 +98,11 @@ public class Controller : MonoBehaviour
     {
         Trackers[0] = new Tracking("Horizontal", K, SystemOrder, 0, InputGain);
         Trackers[1] = new Tracking("Vertical", K, SystemOrder, 0, InputGain);
-        Target.transform.localPosition = RandomPointOnUnitCircle(250);
+
+        Radius = float.Parse(TrialData[CurrentTrial]["Radius"].ToString());
+        Angle = float.Parse(TrialData[CurrentTrial]["Angle"].ToString());
+        Target.transform.localPosition = PointOnCircle(Radius, Angle);
+        // Target.transform.localPosition = RandomPointOnUnitCircle(250);
 
         Cursor.SetActive(false);
         Target.SetActive(false);
@@ -108,13 +112,15 @@ public class Controller : MonoBehaviour
     void StartTrial()
     {
         // Output data to file
+        Trial = (int)TrialData[CurrentTrial]["Trial"];        
         Filename = String.Format("logs/subject_{0}_trial_{1}_log_{2}.csv",
-                                 Subject, CurrentTrial + 1, DateTime.UtcNow.ToLocalTime().ToString("yyy_MM_dd_hh_mm_ss"));
+                                 Subject, Trial, DateTime.UtcNow.ToLocalTime().ToString("yyy_MM_dd_hh_mm_ss"));
         Writer = File.AppendText(Filename);
 
         // Set start time
         RunningTrial = true;
         StartTime = Time.time;
+        CurrentTime = 0;
 
         Cursor.SetActive(true);
         Target.SetActive(true);
@@ -128,7 +134,7 @@ public class Controller : MonoBehaviour
             TargetOffset = (Target.transform.localPosition - Cursor.transform.localPosition).magnitude;
             InsideTarget = TargetOffset < CircleRadius;
 
-            if (InsideTarget && (Input.GetKeyDown(KeyCode.Return) || Input.GetAxis("Axis 6") > 0.2))
+            if (Input.GetKeyDown(KeyCode.Return) || Input.GetAxis("Axis 6") > 0.2 || Input.GetKeyDown(KeyCode.JoystickButton0))
             {
                 EndTrial();
             }
@@ -197,6 +203,14 @@ public class Controller : MonoBehaviour
         float angle = UnityEngine.Random.Range(0f, Mathf.PI * 2);
         float x = Mathf.Sin(angle) * radius;
         float y = Mathf.Cos(angle) * radius;
+
+        return new Vector3(x, y, 0);
+    }
+
+    static Vector3 PointOnCircle(float radius, float angle)
+    {
+        float x = Mathf.Sin(angle) * radius * 250;
+        float y = Mathf.Cos(angle) * radius * 250;
 
         return new Vector3(x, y, 0);
     }
