@@ -99,10 +99,10 @@ public class Controller : MonoBehaviour
         Trackers[0] = new Tracking("Horizontal", K, SystemOrder, 0, InputGain);
         Trackers[1] = new Tracking("Vertical", K, SystemOrder, 0, InputGain);
 
-        Radius = float.Parse(TrialData[CurrentTrial]["Radius"].ToString());
-        Angle = float.Parse(TrialData[CurrentTrial]["Angle"].ToString());
-        Target.transform.localPosition = PointOnCircle(Radius, Angle);
-        // Target.transform.localPosition = RandomPointOnUnitCircle(250);
+        // Radius = float.Parse(TrialData[CurrentTrial]["Radius"].ToString());
+        // Angle = float.Parse(TrialData[CurrentTrial]["Angle"].ToString());
+        // Target.transform.localPosition = PointOnCircle(Radius, Angle);
+        Target.transform.localPosition = RandomPointOnUnitCircle(250);
 
         Cursor.SetActive(false);
         Target.SetActive(false);

@@ -62,5 +62,5 @@ sysinfo.txt
 *.apk
 *.unitypackage
 
-logs/*
+Logs/*
 .vscode/
