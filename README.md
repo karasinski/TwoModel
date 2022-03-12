@@ -14,3 +14,4 @@ K, K/s, K/s^2
 15 minutes doing a 1D tracking task
 15 minutes doing a 2D fitts task
 
+![User Interface](Screenshot.png)
